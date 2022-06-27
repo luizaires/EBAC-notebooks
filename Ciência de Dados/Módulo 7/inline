@@ -1,0 +1,946 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "8f0d7ec9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "\n",
+    "from sklearn.tree import DecisionTreeClassifier\n",
+    "from sklearn.tree import plot_tree\n",
+    "\n",
+    "from sklearn.metrics import confusion_matrix\n",
+    "from sklearn.metrics import plot_confusion_matrix\n",
+    "from sklearn.metrics import accuracy_score\n",
+    "\n",
+    "from sklearn.model_selection import train_test_split"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "6801a118",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "application_encode = pd.read_csv(\"application_encode.csv\")\n",
+    "application_encode.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "2e095a73",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Armazenando as variáveis explicativas\n",
+    "x = application_encode.drop('mau', axis = 1)\n",
+    "#Armazenando a variável target\n",
+    "y = application_encode['mau']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "a0df6ef5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Separando as base de dados para treinamento e teste\n",
+    "x_train, x_test, y_train, y_test = train_test_split(x, y, train_size = 0.7, random_state = 50)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "0102c44e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Armazenando as variáveis explicativas\n",
+    "x = application_encode.drop('mau', axis = 1)\n",
+    "#Armazenando a variável target\n",
+    "y = application_encode['mau']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "fa43b385",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Separando as base de dados para treinamento e teste\n",
+    "x_train, x_test, y_train, y_test = train_test_split(x, y, train_size = 0.7, random_state = 50)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "12f16a24",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Técnica de podagem parametrizada pelo ccp_alpha\n",
+    "clf = DecisionTreeClassifier(random_state = 50)\n",
+    "path = clf.cost_complexity_pruning_path(x_train, y_train)\n",
+    "ccp_alphas = path.ccp_alphas"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "d0bc0b8c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma lista de árvores de decisão para diferentes parâmetros de ccp_alpha\n",
+    "clfs = []\n",
+    "for ccp_alpha in ccp_alphas:\n",
+    "    clf = DecisionTreeClassifier(random_state = 50, ccp_alpha = ccp_alpha)\n",
+    "    clf.fit(x_train, y_train)\n",
+    "    clfs.append(clf)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "a21bba2c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#DataFrame da acurácia de treino e teste para diferentes valores de ccp_alpha \n",
+    "train_scores = [clf.score(x_train, y_train) for clf in clfs]\n",
+    "test_scores = [clf.score(x_test, y_test) for clf in clfs]\n",
+    "\n",
+    "clf_scores = pd.DataFrame({'alpha': ccp_alphas, 'train_score': train_scores, 'test_score': test_scores})\n",
+    "clf_scores.set_index('alpha', inplace = True)\n",
+    "clf_scores"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "f37331f0",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Potagem da acurácia x alpha para o conjunto de dados de treino e teste\n",
+    "fig, ax = plt.subplots(figsize = (12, 8))\n",
+    "sns.lineplot(data = clf_scores, drawstyle = 'steps-post')\n",
+    "ax.set_ylabel('Acurácia')\n",
+    "ax.set_title('Acurácia x alpha para o conjunto de dados de treino e teste')\n",
+    "ax.axvline(x = 0.00010, alpha = 0.5, color = 'r', linewidth = 1)\n",
+    "ax.axvline(x = 0.00013, alpha = 0.5, color = 'r', linewidth = 1)\n",
+    "ax.axvline(x = 0.00018, alpha = 0.5, color = 'r', linewidth = 1);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "76cadfd1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Escolhendo um valor ideal para alpha para acurácia do teste e do treino\n",
+    "clf_scores.loc[0.00025:0.00030, :]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "3e6c0cee",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#DataFrame da acurácia de treino e teste para diferentes valores de ccp_alpha \n",
+    "train_scores = [clf.score(x_train, y_train) for clf in clfs]\n",
+    "test_scores = [clf.score(x_test, y_test) for clf in clfs]\n",
+    "\n",
+    "clf_scores = pd.DataFrame({'alpha': ccp_alphas, 'train_score': train_scores, 'test_score': test_scores})\n",
+    "clf_scores.set_index('alpha', inplace = True)\n",
+    "clf_scores"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "7df65117",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Escolhendo um valor ideal para alpha para acurácia do teste e do treino\n",
+    "clf_scores.loc[0.00025:0.00030, :]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "5ca976d2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Escolhendo um valor ideal para alpha para acurácia do teste e do treino\n",
+    "clf_scores.loc[0.00020:0.00030, :]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "639458d5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Escolhendo um valor ideal para alpha para acurácia do teste e do treino\n",
+    "clf_scores.loc[0.00010:0.00030, :]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "b07e73e9",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.000207\n",
+    "clf_podada_4 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.00028)\n",
+    "clf_podada_4 = clf_podada_4.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "baa16b6c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Visualização da matriz de confusão para o árvore 4\n",
+    "plot_confusion_matrix(clf_podada_4, x_train, y_train, display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "63afea6c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Acurácia na base de treinamento para o árvore 4\n",
+    "y_hat_train = clf_podada_4.predict(x_train)\n",
+    "accuracy_score(y_train, y_hat_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "c444f710",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Plotagem da ávore de decisão para o árvore 4\n",
+    "plt.figure(figsize = (37, 20))\n",
+    "plot_tree(clf_podada_4,\n",
+    "          filled = True,\n",
+    "          class_names = ['aprovados', 'reprovados'],\n",
+    "          feature_names = x_train.columns);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "ad441c06",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.000207\n",
+    "clf_podada_4 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.00025)\n",
+    "clf_podada_4 = clf_podada_4.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "5e2268d2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Visualização da matriz de confusão para o árvore 4\n",
+    "plot_confusion_matrix(clf_podada_4, x_train, y_train, display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "6278ffe7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Acurácia na base de treinamento para o árvore 4\n",
+    "y_hat_train = clf_podada_4.predict(x_train)\n",
+    "accuracy_score(y_train, y_hat_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "51868ea4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Plotagem da ávore de decisão para o árvore 4\n",
+    "plt.figure(figsize = (37, 20))\n",
+    "plot_tree(clf_podada_4,\n",
+    "          filled = True,\n",
+    "          class_names = ['aprovados', 'reprovados'],\n",
+    "          feature_names = x_train.columns);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "id": "a28708f6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.000207\n",
+    "clf_podada_4 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.000207)\n",
+    "clf_podada_4 = clf_podada_4.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "id": "acc2bed2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Visualização da matriz de confusão para o árvore 4\n",
+    "plot_confusion_matrix(clf_podada_4, x_train, y_train, display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "id": "703f1262",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Acurácia na base de treinamento para o árvore 4\n",
+    "y_hat_train = clf_podada_4.predict(x_train)\n",
+    "accuracy_score(y_train, y_hat_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "id": "02efdf7c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Plotagem da ávore de decisão para o árvore 4\n",
+    "plt.figure(figsize = (37, 20))\n",
+    "plot_tree(clf_podada_4,\n",
+    "          filled = True,\n",
+    "          class_names = ['aprovados', 'reprovados'],\n",
+    "          feature_names = x_train.columns);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "id": "3b343f68",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 3.067970e-04\n",
+    "clf_podada_4 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 3.067970e-04)\n",
+    "clf_podada_4 = clf_podada_4.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "id": "ba9f8870",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Visualização da matriz de confusão para o árvore 4\n",
+    "plot_confusion_matrix(clf_podada_4, x_train, y_train, display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "id": "0373e7a7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Acurácia na base de treinamento para o árvore 4\n",
+    "y_hat_train = clf_podada_4.predict(x_train)\n",
+    "accuracy_score(y_train, y_hat_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "id": "6e7b8657",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Plotagem da ávore de decisão para o árvore 4\n",
+    "plt.figure(figsize = (37, 20))\n",
+    "plot_tree(clf_podada_4,\n",
+    "          filled = True,\n",
+    "          class_names = ['aprovados', 'reprovados'],\n",
+    "          feature_names = x_train.columns);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "id": "50efe911",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.0003\n",
+    "clf_podada_4 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.0003)\n",
+    "clf_podada_4 = clf_podada_4.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "id": "00a9f44d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Visualização da matriz de confusão para o árvore 4\n",
+    "plot_confusion_matrix(clf_podada_4, x_train, y_train, display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "id": "1dfe74fa",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Acurácia na base de treinamento para o árvore 4\n",
+    "y_hat_train = clf_podada_4.predict(x_train)\n",
+    "accuracy_score(y_train, y_hat_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "id": "534e7be6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "axes = []\n",
+    "fig = plt.figure()\n",
+    "for i in range(5):\n",
+    "    ax = fig.add_subplot()\n",
+    "    axes.append(ax)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "id": "54177d4b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure()\n",
+    "ax1 = fig.add_subplot()\n",
+    "ax2 = fig.add_subplot()\n",
+    "ax3 = fig.add_subplot()\n",
+    "ax4 = fig.add_subplot()\n",
+    "ax5 = fig.add_subplot()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "id": "2e1637f7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure()\n",
+    "ax0 = fig.add_subplot(0)\n",
+    "ax1 = fig.add_subplot()\n",
+    "ax2 = fig.add_subplot()\n",
+    "ax3= fig.add_subplot()\n",
+    "ax4 = fig.add_subplot()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "id": "fcd9c123",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure(3, 2)\n",
+    "ax1 = fig.add_subplot(3,2,1)\n",
+    "ax2 = fig.add_subplot(3,2,2)\n",
+    "ax3 = fig.add_subplot(3,2,3)\n",
+    "ax4 = fig.add_subplot(3,2,4)\n",
+    "ax5 = fig.add_subplot(3,2,5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 39,
+   "id": "5856478c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure()\n",
+    "ax1 = fig.add_subplot(3,2,1)\n",
+    "ax2 = fig.add_subplot(3,2,2)\n",
+    "ax3 = fig.add_subplot(3,2,3)\n",
+    "ax4 = fig.add_subplot(3,2,4)\n",
+    "ax5 = fig.add_subplot(3,2,5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 40,
+   "id": "c37763b4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes, estimator):\n",
+    "    plot_confusion_matrix(ax = axes[i], \n",
+    "                          estimator = clfs[j], \n",
+    "                          x_test, \n",
+    "                          y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 41,
+   "id": "9fc67175",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes, estimator):\n",
+    "    plot_confusion_matrix(ax = axes[i], \n",
+    "                          estimator = clfs[j], \n",
+    "                          X = x_test, \n",
+    "                          y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "id": "f3f78a7c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes, estimator):\n",
+    "    plot_confusion_matrix(ax = axes[i], \n",
+    "                          estimator = clfs[j], \n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 43,
+   "id": "5681ca7c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.00011\n",
+    "clf_podada_1 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.00011)\n",
+    "clf_podada_1 = clf_podada_1.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "id": "7f1c9250",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.000118\n",
+    "clf_podada_2 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.000118)\n",
+    "clf_podada_2 = clf_podada_2.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 45,
+   "id": "7919dc02",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.00017\n",
+    "clf_podada_3 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.00017)\n",
+    "clf_podada_3 = clf_podada_3.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 46,
+   "id": "6bdd5dde",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.000207\n",
+    "clf_podada_4 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.000207)\n",
+    "clf_podada_4 = clf_podada_4.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 47,
+   "id": "f1367923",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Criando uma árvore de decisão para ccp_alpha igual a 0.0003\n",
+    "clf_podada_5 = DecisionTreeClassifier(random_state = 50, ccp_alpha = 0.0003)\n",
+    "clf_podada_5 = clf_podada_5.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 48,
+   "id": "26db6ca7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes, estimator):\n",
+    "    plot_confusion_matrix(ax = axes[i], \n",
+    "                          estimator = clfs[j], \n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 49,
+   "id": "39072552",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes, estimator):\n",
+    "    print(i)\n",
+    "    print(j)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 50,
+   "id": "06c009cd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes, clfs):\n",
+    "    print(i)\n",
+    "    print(j)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 51,
+   "id": "0597e187",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes):\n",
+    "    print(i)\n",
+    "    print(j)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 52,
+   "id": "5077ec04",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in (axes, clfs):\n",
+    "    plot_confusion_matrix(ax = axes[i], \n",
+    "                          estimator = clfs[j], \n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 53,
+   "id": "0b28e48b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for (i, j) in (axes, clfs):\n",
+    "    plot_confusion_matrix(ax = axes[i], \n",
+    "                          estimator = clfs[j], \n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 54,
+   "id": "5fc147b1",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in ([axes, clfs]):\n",
+    "    plot_confusion_matrix(ax = axes[i], \n",
+    "                          estimator = clfs[j], \n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 55,
+   "id": "edfb8a3c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in zip(axes, clfs):\n",
+    "    plot_confusion_matrix(ax = axes, \n",
+    "                          estimator = clfs, \n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 56,
+   "id": "3c9e0226",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in zip(axes, clfs):\n",
+    "    plot_confusion_matrix(estimator = clfs,\n",
+    "                          ax = axes,\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 57,
+   "id": "27e0bd8e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i, j in zip(axes, clfs):\n",
+    "    plot_confusion_matrix(clfs,\n",
+    "                          ax = axes,\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 58,
+   "id": "840939fa",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "for i in range(5):\n",
+    "    plot_confusion_matrix(clfs[i],\n",
+    "                          ax = axes[i],\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 59,
+   "id": "b73e13bc",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure()\n",
+    "ax1 = fig.add_subplot(3,2,1)\n",
+    "ax2 = fig.add_subplot(3,2,2)\n",
+    "ax3 = fig.add_subplot(3,2,3)\n",
+    "ax4 = fig.add_subplot(3,2,4)\n",
+    "ax5 = fig.add_subplot(3,2,5)\n",
+    "\n",
+    "axes = [ax1, ax2, ax3, ax4, ax5]\n",
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "\n",
+    "for i in range(5):\n",
+    "    plot_confusion_matrix(estimator = clfs[i],\n",
+    "                          ax = axes[i],\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 60,
+   "id": "f385af0c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure(figsize = (12, 8))\n",
+    "ax1 = fig.add_subplot(3,2,1)\n",
+    "ax2 = fig.add_subplot(3,2,2)\n",
+    "ax3 = fig.add_subplot(3,2,3)\n",
+    "ax4 = fig.add_subplot(3,2,4)\n",
+    "ax5 = fig.add_subplot(3,2,5)\n",
+    "\n",
+    "axes = [ax1, ax2, ax3, ax4, ax5]\n",
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "\n",
+    "for i in range(5):\n",
+    "    plot_confusion_matrix(estimator = clfs[i],\n",
+    "                          ax = axes[i],\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados']);"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 61,
+   "id": "0196249f",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure(figsize = (12, 8))\n",
+    "ax1 = fig.add_subplot(2,3,1)\n",
+    "ax2 = fig.add_subplot(2,3,2)\n",
+    "ax3 = fig.add_subplot(2,3,3)\n",
+    "ax4 = fig.add_subplot(2,3,4)\n",
+    "ax5 = fig.add_subplot(2,3,5)\n",
+    "\n",
+    "axes = [ax1, ax2, ax3, ax4, ax5]\n",
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "\n",
+    "for i in range(5):\n",
+    "    plot_confusion_matrix(estimator = clfs[i],\n",
+    "                          ax = axes[i],\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados'])\n",
+    "    axes[i].set_title(f'Árvore de decisão {i}', i)\n",
+    "plt.suplots_adjust(wspace = 0.2, hspace = 0.5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 62,
+   "id": "cfe99cf4",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure(figsize = (12, 8))\n",
+    "ax1 = fig.add_subplot(2,3,1)\n",
+    "ax2 = fig.add_subplot(2,3,2)\n",
+    "ax3 = fig.add_subplot(2,3,3)\n",
+    "ax4 = fig.add_subplot(2,3,4)\n",
+    "ax5 = fig.add_subplot(2,3,5)\n",
+    "\n",
+    "axes = [ax1, ax2, ax3, ax4, ax5]\n",
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "\n",
+    "for i in range(5):\n",
+    "    plot_confusion_matrix(estimator = clfs[i],\n",
+    "                          ax = axes[i],\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados'])\n",
+    "    axes[i].set_title('Árvore de decisão' + str(i+1))\n",
+    "plt.suplots_adjust(wspace = 0.2, hspace = 0.5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 63,
+   "id": "ba02ee62",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "\n",
+    "from sklearn.tree import DecisionTreeClassifier\n",
+    "from sklearn.tree import plot_tree\n",
+    "\n",
+    "from sklearn.metrics import confusion_matrix\n",
+    "from sklearn.metrics import plot_confusion_matrix\n",
+    "from sklearn.metrics import accuracy_score\n",
+    "\n",
+    "from sklearn.model_selection import train_test_split"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 64,
+   "id": "454551e2",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "fig = plt.figure(figsize = (12, 8))\n",
+    "ax1 = fig.add_subplot(2,3,1)\n",
+    "ax2 = fig.add_subplot(2,3,2)\n",
+    "ax3 = fig.add_subplot(2,3,3)\n",
+    "ax4 = fig.add_subplot(2,3,4)\n",
+    "ax5 = fig.add_subplot(2,3,5)\n",
+    "\n",
+    "axes = [ax1, ax2, ax3, ax4, ax5]\n",
+    "clfs = [clf_podada_1, clf_podada_2, clf_podada_3, clf_podada_4, clf_podada_5]\n",
+    "\n",
+    "for i in range(5):\n",
+    "    plot_confusion_matrix(estimator = clfs[i],\n",
+    "                          ax = axes[i],\n",
+    "                          X = x_test, \n",
+    "                          y_true = y_test, \n",
+    "                          display_labels = ['aprovados', 'reprovados'])\n",
+    "    axes[i].set_title('Árvore de decisão ' + str(i+1))\n",
+    "plt.suplots_adjust(wspace = 0.2, hspace = 0.5)"
+   ]
+  }
+ ],
+ "metadata": {},
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
